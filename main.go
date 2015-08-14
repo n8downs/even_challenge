@@ -1,21 +1,17 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
 
-type schedule struct {
-	period string
-	day    string
-}
-
-type income struct {
-	amount   int
-	schedule schedule
-}
+	t "github.com/ndowns/even_challenge/Types"
+)
 
 func main() {
 	fmt.Println("Hello World")
 
-	incomes := []income{}
+	incomes := []t.Income{}
 	fmt.Println("test")
 	fmt.Println(incomes)
+	fmt.Println(time.Second)
 }
