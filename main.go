@@ -8,18 +8,24 @@ import (
 )
 
 const (
-	dateFormat = "2015.01.02"
+	dateFormat = "2006.01.02"
+
+	startingBalance = 1000.
 )
 
 func main() {
-	fmt.Println("Hello World")
-
 	incomes := []t.Income{}
-	fmt.Println("test")
 	fmt.Println(incomes)
-	fmt.Println(time.Second)
+	balance := startingBalance
 
-	transaction := t.Transaction{}
-	//transaction := t.Transaction{date: time.Parse(dateFormat, "2015.08.08"), delta: -100.32, memo: "SAVE for rent"}
-	fmt.Println(transaction)
+	date, _ := time.Parse(dateFormat, "2015.08.14")
+	transaction := t.Transaction{Date: date, Delta: -100.32, Memo: "SAVER for rent"}
+	balance = balance + transaction.Delta
+	fmt.Printf("%s | %.2f\n", transaction.ToString(), balance)
+
+	date, _ = time.Parse(dateFormat, "2015.08.31")
+	date = date.Add(26 * time.Hour)
+	transaction = t.Transaction{Date: date, Delta: 12.34, Memo: "TRANS for rent"}
+	balance = balance + transaction.Delta
+	fmt.Printf("%s | %.2f\n", transaction.ToString(), balance)
 }
