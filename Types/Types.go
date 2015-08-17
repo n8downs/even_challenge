@@ -1,8 +1,38 @@
 package Types
 
-import "time"
-import "fmt"
-import "math"
+import (
+	"fmt"
+	"math"
+	"time"
+)
+
+// Period ...
+type Period int
+
+/*
+Test
+*/
+const (
+	Monthly Period = iota
+	BiMonthly
+	Weekly
+	BiWeekly
+)
+
+func (p Period) String() string {
+	switch p {
+	case Monthly:
+		return "Monthly"
+	case BiMonthly:
+		return "BiMonthly"
+	case Weekly:
+		return "Weekly"
+	case BiWeekly:
+		return "BiWeekly"
+	default:
+		return "???"
+	}
+}
 
 const (
 	dateFormat = "2006.01.02"
@@ -10,8 +40,9 @@ const (
 
 // Schedule ...
 type Schedule struct {
-	Period string
-	Day    string
+	Period Period
+	Day    time.Weekday
+	Date   int
 }
 
 // Income ...
