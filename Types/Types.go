@@ -9,14 +9,22 @@ import (
 // Period ...
 type Period int
 
-/*
-Test
-*/
+// test
 const (
 	Monthly Period = iota
 	BiMonthly
 	Weekly
 	BiWeekly
+)
+
+// Account ...
+type Account int
+
+// test
+const (
+	External Account = iota
+	Checking
+	Savings
 )
 
 func (p Period) String() string {
@@ -38,13 +46,6 @@ const (
 	dateFormat = "2006.01.02"
 )
 
-// Schedule ...
-type Schedule struct {
-	Period Period
-	Day    time.Weekday
-	Date   int
-}
-
 // Income ...
 type Income struct {
 	Name     string
@@ -64,6 +65,8 @@ type Transaction struct {
 	Date  time.Time
 	Delta float64
 	Memo  string
+	From  Account
+	To    Account
 }
 
 // ToString ...
@@ -75,6 +78,13 @@ func (t Transaction) ToString() string {
 		d = fmt.Sprintf("(%.2f)", math.Abs(t.Delta))
 	}
 	return fmt.Sprintf("%10s | %-40s | %15s", t.Date.Format(dateFormat), t.Memo, d)
+}
+
+// Schedule ...
+type Schedule struct {
+	Period  Period
+	Weekday time.Weekday
+	Date    int
 }
 
 // FindOccurrances ...
