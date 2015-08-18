@@ -133,13 +133,71 @@ func (s Schedule) FindOccurrances(from, to time.Time) (occurrances []time.Time) 
 		}
 	case Weekly:
 		{
-			// TODO
+			occ := from
+			for {
+				if occ.Weekday() == s.Weekday {
+					break
+				}
+				occ = occ.AddDate(0, 0, 1)
+			}
+
+			for {
+				if occ.After(to) {
+					break
+				}
+				occurrances = append(occurrances, occ)
+				occ = occ.AddDate(0, 0, 7)
+			}
 		}
 	case BiWeekly:
 		{
-			// TODO
+			// TODO: probably want a way to specify that the next occurance will not
+			// be the first we come across, but rather the second from the start
+			occ := from
+			for {
+				if occ.Weekday() == s.Weekday {
+					break
+				}
+				occ = occ.AddDate(0, 0, 1)
+			}
+
+			for {
+				if occ.After(to) {
+					break
+				}
+				occurrances = append(occurrances, occ)
+				occ = occ.AddDate(0, 0, 14)
+			}
 		}
 	}
 
 	return
 }
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
