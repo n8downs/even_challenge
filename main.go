@@ -149,6 +149,7 @@ func Plan(
 		currentDate = currentDate.AddDate(0, 0, 1)
 	}
 
+	fmt.Println(idealDiscretionary)
 	//fmt.Printf("Planned average discretionary spending levels: $%.2f (%.2f%%)\n\n", discretionaryAmount/discretionaryDays, discretionaryAmount/discretionaryDays/idealDiscretionary)
 
 	for date, amount := range savingsPlan {
