@@ -15,6 +15,7 @@ const (
 	BiMonthly
 	Weekly
 	BiWeekly
+	OneTime
 )
 
 // Account ...
@@ -37,6 +38,8 @@ func (p Period) String() string {
 		return "Weekly"
 	case BiWeekly:
 		return "BiWeekly"
+	case OneTime:
+		return "OneTime"
 	default:
 		return "???"
 	}
@@ -86,6 +89,7 @@ type Schedule struct {
 	Period  Period
 	Weekday time.Weekday
 	Date    int
+	Time    time.Time
 }
 
 // FindOccurrances ...
@@ -168,6 +172,12 @@ func (s Schedule) FindOccurrances(from, to time.Time) (occurrances []time.Time) 
 				}
 				occurrances = append(occurrances, occ)
 				occ = occ.AddDate(0, 0, 14)
+			}
+		}
+	case OneTime:
+		{
+			if !(s.Time.Before(from) || s.Time.After(to)) {
+				occurrances = append(occurrances, s.Time)
 			}
 		}
 	}
