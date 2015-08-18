@@ -8,14 +8,9 @@ import (
 	t "github.com/ndowns/even_challenge/Types"
 )
 
-const (
-	dateFormat = "2006.01.02"
-)
-
 func main() {
-	fromDay, _ := time.Parse(dateFormat, "2015.08.01")
-	toDay, _ := time.Parse(dateFormat, "2015.08.31")
-	accounts := map[t.Account]float64{t.External: 0., t.Checking: 0., t.Savings: 0.}
+	fromDay, _ := time.Parse(t.DateFormat, "2015.08.01")
+	toDay, _ := time.Parse(t.DateFormat, "2015.08.31")
 
 	incomes := []t.Income{}
 	incomes = append(incomes,
@@ -50,6 +45,12 @@ func main() {
 		},
 	)
 	fmt.Println("Expenses: ", expenses)
+
+	_ = simulate(fromDay, toDay, incomes, expenses)
+}
+
+func simulate(fromDay time.Time, toDay time.Time, incomes []t.Income, expenses []t.Expense) map[t.Account]float64 {
+	accounts := map[t.Account]float64{t.External: 0., t.Checking: 0., t.Savings: 0.}
 
 	totalIncome := 0.
 	totalExpenses := 0.
@@ -87,7 +88,7 @@ func main() {
 	fmt.Printf("Total: $%.2f in, $%.2f out, $%.2f ideally per day\n\n", totalIncome, totalExpenses, idealDiscretionary)
 	if totalExpenses > totalIncome {
 		fmt.Printf("Insolvent :(")
-		return
+		return accounts
 	}
 
 	discretionaryAmount := 0.
@@ -202,7 +203,7 @@ func main() {
 		currentDate = currentDate.AddDate(0, 0, 1)
 	}
 
-	fmt.Println(accounts)
+	return accounts
 }
 
 /*

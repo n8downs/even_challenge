@@ -42,8 +42,9 @@ func (p Period) String() string {
 	}
 }
 
+// DateFormat
 const (
-	dateFormat = "2006.01.02"
+	DateFormat = "2006.01.02"
 )
 
 // Income ...
@@ -77,7 +78,7 @@ func (t Transaction) ToString() string {
 	} else {
 		d = fmt.Sprintf("(%.2f)", math.Abs(t.Delta))
 	}
-	return fmt.Sprintf("%10s | %-40s | %15s", t.Date.Format(dateFormat), t.Memo, d)
+	return fmt.Sprintf("%10s | %-40s | %15s", t.Date.Format(DateFormat), t.Memo, d)
 }
 
 // Schedule ...
