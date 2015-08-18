@@ -9,8 +9,8 @@ import (
 )
 
 func main() {
-	fromDay, _ := time.Parse(t.DateFormat, "2015.08.01")
-	toDay, _ := time.Parse(t.DateFormat, "2015.08.31")
+	startDay, _ := time.Parse(t.DateFormat, "2015.08.01")
+	endDay, _ := time.Parse(t.DateFormat, "2015.08.31")
 
 	incomes := []t.Income{}
 	incomes = append(incomes,
@@ -46,10 +46,10 @@ func main() {
 	)
 	fmt.Println("Expenses: ", expenses)
 
-	_ = simulate(fromDay, toDay, incomes, expenses)
+	_ = simulate(startDay, endDay, incomes, expenses)
 }
 
-func simulate(fromDay time.Time, toDay time.Time, incomes []t.Income, expenses []t.Expense) map[t.Account]float64 {
+func simulate(startDay time.Time, endDay time.Time, incomes []t.Income, expenses []t.Expense) map[t.Account]float64 {
 	accounts := map[t.Account]float64{t.External: 0., t.Checking: 0., t.Savings: 0.}
 
 	totalIncome := 0.
@@ -61,7 +61,7 @@ func simulate(fromDay time.Time, toDay time.Time, incomes []t.Income, expenses [
 	ledger := map[time.Time][]t.Transaction{}
 
 	for _, income := range incomes {
-		occurrances := income.Schedule.FindOccurrances(fromDay, toDay)
+		occurrances := income.Schedule.FindOccurrances(startDay, endDay)
 		for _, date := range occurrances {
 			ledger[date] = append(ledger[date], t.Transaction{
 				Date:  date,
@@ -77,14 +77,14 @@ func simulate(fromDay time.Time, toDay time.Time, incomes []t.Income, expenses [
 	}
 
 	for _, expense := range expenses {
-		occurrances := expense.Schedule.FindOccurrances(fromDay, toDay)
+		occurrances := expense.Schedule.FindOccurrances(startDay, endDay)
 		for _, date := range occurrances {
 			totalExpenses += expense.Amount
 			expenseTotals[date] += expense.Amount
 		}
 	}
 
-	idealDiscretionary := (totalIncome - totalExpenses) / (toDay.Sub(fromDay).Hours() / 24)
+	idealDiscretionary := (totalIncome - totalExpenses) / (endDay.Sub(startDay).Hours() / 24)
 	fmt.Printf("Total: $%.2f in, $%.2f out, $%.2f ideally per day\n\n", totalIncome, totalExpenses, idealDiscretionary)
 	if totalExpenses > totalIncome {
 		fmt.Printf("Insolvent :(")
@@ -93,10 +93,10 @@ func simulate(fromDay time.Time, toDay time.Time, incomes []t.Income, expenses [
 
 	discretionaryAmount := 0.
 	discretionaryDays := 0.
-	currentDate := fromDay
+	currentDate := startDay
 	runningPlan := 0.
 	for {
-		if currentDate.After(toDay) {
+		if currentDate.After(endDay) {
 			break
 		}
 
@@ -104,7 +104,7 @@ func simulate(fromDay time.Time, toDay time.Time, incomes []t.Income, expenses [
 			nextIncomeDate := currentDate
 			upcomingExpenses := 0.
 			for {
-				if nextIncomeDate.After(toDay) {
+				if nextIncomeDate.After(endDay) {
 					break
 				}
 
@@ -166,7 +166,7 @@ func simulate(fromDay time.Time, toDay time.Time, incomes []t.Income, expenses [
 	}
 
 	for _, expense := range expenses {
-		occurrances := expense.Schedule.FindOccurrances(fromDay, toDay)
+		occurrances := expense.Schedule.FindOccurrances(startDay, endDay)
 		for _, date := range occurrances {
 			ledger[date] = append(ledger[date], t.Transaction{
 				Date:  date,
@@ -178,10 +178,10 @@ func simulate(fromDay time.Time, toDay time.Time, incomes []t.Income, expenses [
 		}
 	}
 
-	currentDate = fromDay
+	currentDate = startDay
 	inARow := 0
 	for {
-		if currentDate.After(toDay) {
+		if currentDate.After(endDay) {
 			break
 		}
 
