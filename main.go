@@ -201,6 +201,8 @@ func main() {
 		}
 		currentDate = currentDate.AddDate(0, 0, 1)
 	}
+
+	fmt.Println(accounts)
 }
 
 /*
