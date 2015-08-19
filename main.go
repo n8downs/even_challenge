@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/ndowns/even_challenge/Types"
@@ -13,7 +14,7 @@ const simulatedSpendingMemo = "  -Simulated Spending-"
 
 func main() {
 	startDay, _ := time.Parse(Types.DateFormat, "2015.08.01")
-	endDay, _ := time.Parse(Types.DateFormat, "2015.08.31")
+	endDay, _ := time.Parse(Types.DateFormat, "2016.12.31")
 
 	incomes := []Types.Income{
 		Types.Income{
@@ -28,6 +29,7 @@ func main() {
 		},
 	}
 
+	christmas, _ := time.Parse(Types.DateFormat, "2015.12.25")
 	expenses := []Types.Expense{
 		Types.Expense{
 			Amount:   money.New(42.34),
@@ -40,18 +42,24 @@ func main() {
 			Schedule: Types.Schedule{Period: Types.Monthly, Date: 28},
 		},
 		Types.Expense{
-			Amount:   money.New(40.),
-			Name:     "Crossfit",
-			Schedule: Types.Schedule{Period: Types.Weekly, Weekday: time.Tuesday},
+			Amount:   money.New(600.),
+			Name:     "Vacation",
+			Schedule: Types.Schedule{Period: Types.OneTime, Time: christmas},
 		},
 	}
 
-	plan, _ := Plan(startDay, endDay, incomes, expenses)
+	plan, ideal := Plan(startDay, endDay, incomes, expenses)
 
-	accounts, _, err := Simulate(startDay, endDay, plan, true)
+	if len(plan) == 0 {
+		fmt.Println("Insolvent :(")
+	}
+
+	accounts, actual, err := Simulate(startDay, endDay, plan, true)
 	if err != nil {
 		fmt.Println(err, accounts)
 	}
+
+	fmt.Printf("actual spending: %.2f%% of ideal discretionary spending\n", math.Abs(actual.Float()/ideal.Float()*100.))
 }
 
 // Plan ...
@@ -66,11 +74,11 @@ func Plan(
 	totalExpenses := money.New(0.)
 
 	incomeTotals := map[time.Time]money.Money{}
-	savingsPlan := map[time.Time]money.Money{}
 	expenseTotals := map[time.Time]money.Money{}
+	savingsPlan := map[time.Time]money.Money{}
 
 	for _, income := range incomes {
-		occurrances := income.Schedule.FindOccurrances(startDay, endDay)
+		occurrances := income.Schedule.FindRealOccurrances(startDay, endDay)
 		for _, date := range occurrances {
 			ledger[date] = append(ledger[date], Types.Transaction{
 				Date:  date,
@@ -86,10 +94,21 @@ func Plan(
 	}
 
 	for _, expense := range expenses {
-		occurrances := expense.Schedule.FindOccurrances(startDay, endDay)
-		for _, date := range occurrances {
-			totalExpenses = totalExpenses.Add(expense.Amount)
-			expenseTotals[date] = expenseTotals[date].Add(expense.Amount)
+		tallyExpense := func(date time.Time, amount money.Money) {
+			totalExpenses = totalExpenses.Add(amount)
+			expenseTotals[date] = expenseTotals[date].Add(amount)
+		}
+
+		occurrances := expense.Schedule.FindVirtualOccurrances(startDay, endDay)
+		if expense.Schedule.Period == Types.OneTime {
+			amounts := expense.Amount.Divide(int64(len(occurrances)))
+			for i := 0; i < len(occurrances); i++ {
+				tallyExpense(occurrances[i], amounts[i])
+			}
+		} else {
+			for _, date := range occurrances {
+				tallyExpense(date, expense.Amount)
+			}
 		}
 	}
 
@@ -101,7 +120,7 @@ func Plan(
 	idealDiscretionary := discretionaryDivided[0]
 
 	currentDate := startDay
-	runningPlan := money.New(0.)
+	runningSavings := money.New(0.)
 	for {
 		if currentDate.After(endDay) {
 			break
@@ -121,14 +140,21 @@ func Plan(
 					break
 				}
 			}
-			daysUntilNextIncome := int64(nextIncomeDate.Sub(currentDate).Hours() / 24)
-			mustTransfer := upcomingExpenses.Subtract(runningPlan)
-			idealTransfer := incomeTotals[currentDate].Subtract(idealDiscretionary.Multiply(float64(daysUntilNextIncome)))
-			transfer := money.Max(mustTransfer, idealTransfer)
-			runningPlan = runningPlan.Add(transfer).Subtract(upcomingExpenses)
 
+			discretionaryDivided = totalIncome.Add(runningSavings).Subtract(totalExpenses).Divide(int64(endDay.Sub(currentDate).Hours() / 24))
+			currentIdeal := discretionaryDivided[0]
+
+			daysUntilNextIncome := int64(nextIncomeDate.Sub(currentDate).Hours() / 24)
+			mustTransfer := upcomingExpenses.Subtract(runningSavings)
+			idealTransfer := incomeTotals[currentDate].Subtract(currentIdeal.Multiply(float64(daysUntilNextIncome)))
+			transfer := money.Max(mustTransfer, idealTransfer)
+
+			runningSavings = runningSavings.Add(transfer).Subtract(upcomingExpenses)
 			savingsPlan[currentDate] = transfer.Multiply(-1.)
 			actualDiscretionaries := incomeTotals[currentDate].Subtract(transfer).Divide(daysUntilNextIncome)
+
+			totalIncome = totalIncome.Subtract(incomeTotals[currentDate])
+			totalExpenses = totalExpenses.Subtract(upcomingExpenses)
 
 			simulatedSpendingDate := currentDate
 			for _, discretionaryAmount := range actualDiscretionaries {
@@ -137,7 +163,7 @@ func Plan(
 					To:    Types.External,
 					Memo:  simulatedSpendingMemo,
 					Date:  simulatedSpendingDate,
-					Delta: discretionaryAmount,
+					Delta: discretionaryAmount.Multiply(-1.),
 				})
 				simulatedSpendingDate = simulatedSpendingDate.AddDate(0, 0, 1)
 			}
@@ -166,15 +192,16 @@ func Plan(
 	}
 
 	for _, expense := range expenses {
-		occurrances := expense.Schedule.FindOccurrances(startDay, endDay)
+		occurrances := expense.Schedule.FindRealOccurrances(startDay, endDay)
 		for _, date := range occurrances {
-			ledger[date] = append(ledger[date], Types.Transaction{
-				Date:  date,
-				Delta: expense.Amount,
-				Memo:  fmt.Sprintf("Transfer from Savings for: %s", expense.Name),
-				From:  Types.Savings,
-				To:    Types.Checking,
-			},
+			ledger[date] = append(ledger[date],
+				Types.Transaction{
+					Date:  date,
+					Delta: expense.Amount,
+					Memo:  fmt.Sprintf("Transfer from Savings for: %s", expense.Name),
+					From:  Types.Savings,
+					To:    Types.Checking,
+				},
 				Types.Transaction{
 					Date:  date,
 					Delta: expense.Amount.Multiply(-1.),
@@ -197,7 +224,11 @@ func Simulate(
 ) (accounts map[Types.Account]money.Money, averageSpending money.Money, err error) {
 	simulatedSpending := money.New(0.)
 	numDays := int64(0)
-	accounts = map[Types.Account]money.Money{Types.External: money.New(0.), Types.Checking: money.New(0.), Types.Savings: money.New(0.)}
+	accounts = map[Types.Account]money.Money{
+		Types.External: money.New(0.),
+		Types.Checking: money.New(0.),
+		Types.Savings:  money.New(0.),
+	}
 
 	currentDate := startDay
 	for {
@@ -214,7 +245,11 @@ func Simulate(
 			accounts[transaction.To] = accounts[transaction.To].Add(transaction.Delta.Abs())
 
 			if shouldPrintOutput {
-				fmt.Printf("%s | %9s | %9s\n", transaction.String(), accounts[Types.Checking].String(), accounts[Types.Savings].String())
+				fmt.Printf("%s | %9s | %9s\n",
+					transaction.String(),
+					accounts[Types.Checking].String(),
+					accounts[Types.Savings].String(),
+				)
 			}
 
 			if money.New(0.).GreaterThan(accounts[Types.Checking]) || money.New(0.).GreaterThan(accounts[Types.Savings]) {
@@ -227,7 +262,7 @@ func Simulate(
 
 	divided := simulatedSpending.Divide(numDays)
 
-	return accounts, divided[0], nil
+	return accounts, divided[0].Abs(), nil
 }
 
 /*

@@ -86,8 +86,8 @@ type Schedule struct {
 	Time    time.Time
 }
 
-// FindOccurrances ...
-func (s Schedule) FindOccurrances(from, to time.Time) (occurrances []time.Time) {
+// FindRealOccurrances ...
+func (s Schedule) FindRealOccurrances(from, to time.Time) (occurrances []time.Time) {
 	switch s.Period {
 	case Monthly:
 		{
@@ -179,6 +179,23 @@ func (s Schedule) FindOccurrances(from, to time.Time) (occurrances []time.Time) 
 	}
 
 	return
+}
+
+// FindVirtualOccurrances ...
+func (s Schedule) FindVirtualOccurrances(from, to time.Time) (occurrances []time.Time) {
+	switch s.Period {
+	case OneTime:
+		{
+			v := Schedule{
+				Period: Weekly,
+			}
+			return v.FindRealOccurrances(from, s.Time)
+		}
+	default:
+		{
+			return s.FindRealOccurrances(from, to)
+		}
+	}
 }
 
 /*
