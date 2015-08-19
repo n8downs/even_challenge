@@ -74,6 +74,17 @@ func Max(args ...Money) Money {
 	return max
 }
 
+// Min ...
+func Min(args ...Money) Money {
+	min := args[0]
+	for _, m := range args {
+		if min.GreaterThan(m) {
+			min = m
+		}
+	}
+	return min
+}
+
 // Abs ...
 func (m Money) Abs() Money {
 	return Money{int64(math.Abs(float64(m.pennies)))}

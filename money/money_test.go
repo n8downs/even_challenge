@@ -124,36 +124,8 @@ func TestFloat(t *testing.T) {
 	assert.Equal(t, -1.99, New(-1.99).Float())
 }
 
-/*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
+func TestMin(t *testing.T) {
+	assert.Equal(t, New(1.99), Min(New(2.00), New(1.99)))
+	assert.Equal(t, New(1.99), Min(New(1.99), New(2.00)))
+	assert.Equal(t, New(1.98), Min(New(1.98), New(1.99), New(2.00)))
+}

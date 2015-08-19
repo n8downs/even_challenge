@@ -182,46 +182,49 @@ func (s Schedule) FindRealOccurrances(from, to time.Time) (occurrances []time.Ti
 }
 
 // FindVirtualOccurrances ...
-func (s Schedule) FindVirtualOccurrances(from, to time.Time) (occurrances []time.Time) {
-	switch s.Period {
+func (e Expense) FindVirtualOccurrances(from, to time.Time) map[time.Time]money.Money {
+	occurrances := map[time.Time]money.Money{}
+	switch e.Schedule.Period {
+	/*
+		  // XXXnrd: It seems like this should help, but in practice, it doesn't seem to.
+		  case Monthly:
+			{
+				v := Schedule{
+					Period: Weekly,
+				}
+				realDates := e.Schedule.FindRealOccurrances(from, to)
+				currentDate := from
+				for _, realDate := range realDates {
+					dates := v.FindRealOccurrances(currentDate, realDate)
+					amounts := e.Amount.Divide(int64(len(dates)))
+					for i := 0; i < len(dates); i++ {
+						occurrances[dates[i]] = amounts[i]
+					}
+					currentDate = realDate.AddDate(0, 0, 1)
+				}
+			}
+	*/
 	case OneTime:
 		{
+			realDates := e.Schedule.FindRealOccurrances(from, to)
+			if len(realDates) == 0 {
+				return occurrances
+			}
 			v := Schedule{
 				Period: Weekly,
 			}
-			return v.FindRealOccurrances(from, s.Time)
+			dates := v.FindRealOccurrances(from, e.Schedule.Time)
+			amounts := e.Amount.Divide(int64(len(dates)))
+			for i := 0; i < len(dates); i++ {
+				occurrances[dates[i]] = amounts[i]
+			}
 		}
 	default:
 		{
-			return s.FindRealOccurrances(from, to)
+			for _, date := range e.Schedule.FindRealOccurrances(from, to) {
+				occurrances[date] = e.Amount
+			}
 		}
 	}
+	return occurrances
 }
-
-/*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
