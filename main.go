@@ -12,8 +12,8 @@ import (
 const simulatedSpendingMemo = "  -Simulated Spending-"
 
 func main() {
-	startDay := UnsafeTimeParse("2015.08.01")
-	endDay := UnsafeTimeParse("2015.08.31")
+	startDay, _ := time.Parse(Types.DateFormat, "2015.08.01")
+	endDay, _ := time.Parse(Types.DateFormat, "2015.08.31")
 
 	incomes := []Types.Income{
 		Types.Income{
@@ -52,12 +52,6 @@ func main() {
 	if err != nil {
 		fmt.Println(err, accounts)
 	}
-}
-
-// UnsafeTimeParse ...
-func UnsafeTimeParse(s string) (t time.Time) {
-	t, _ = time.Parse(Types.DateFormat, s)
-	return
 }
 
 // Plan ...
