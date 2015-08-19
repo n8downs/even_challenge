@@ -78,3 +78,8 @@ func Max(args ...Money) Money {
 func (m Money) Abs() Money {
 	return Money{int64(math.Abs(float64(m.pennies)))}
 }
+
+// Float ...
+func (m Money) Float() float64 {
+	return float64(m.pennies) / 100.
+}

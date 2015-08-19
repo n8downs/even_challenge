@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -53,8 +52,7 @@ func TestBasicHappyPath(t *testing.T) {
 	assert.Equal(t, money.New(0.), accounts[Types.Checking])
 	assert.Equal(t, money.New(0.), accounts[Types.Savings])
 
-	fmt.Println(idealSpending, avgSimulatedSpending)
-	//assert.InDelta(t, avgSimulatedSpending/idealSpending, 1., 0.05)
+	assert.InDelta(t, avgSimulatedSpending.Float()/idealSpending.Float(), 1., 0.05)
 }
 
 func TestInsolvent(t *testing.T) {
@@ -136,6 +134,5 @@ func TestOneTimePayment(t *testing.T) {
 	assert.Equal(t, money.New(0.), accounts[Types.Checking])
 	assert.Equal(t, money.New(0.), accounts[Types.Savings])
 
-	fmt.Println(idealSpending, avgSimulatedSpending)
-	//assert.InDelta(t, avgSimulatedSpending/idealSpending, 1., 0.05)
+	assert.InDelta(t, avgSimulatedSpending.Float()/idealSpending.Float(), 1., 0.05)
 }

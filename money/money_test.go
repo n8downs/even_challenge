@@ -119,6 +119,11 @@ func TestAbs(t *testing.T) {
 	assert.Equal(t, New(2.00), New(-2.00).Abs())
 }
 
+func TestFloat(t *testing.T) {
+	assert.Equal(t, 1.99, New(1.99).Float())
+	assert.Equal(t, -1.99, New(-1.99).Float())
+}
+
 /*
 
 
