@@ -183,3 +183,44 @@ func TestLongTimeWindow(t *testing.T) {
 
 	assert.InDelta(t, avgSimulatedSpending.Float()/idealSpending.Float(), 1., 0.05)
 }
+
+func TestIncomeHappensOnEndDayOfPlan(t *testing.T) {
+	startDay, _ := time.Parse(Types.DateFormat, "2015.08.01")
+	endDay, _ := time.Parse(Types.DateFormat, "2015.08.20")
+
+	incomes := []Types.Income{
+		Types.Income{
+			Amount:   money.New(500.),
+			Name:     "Philz",
+			Schedule: Types.Schedule{Period: Types.BiMonthly},
+		},
+		Types.Income{
+			Amount:   money.New(175.),
+			Name:     "Mission Cliffs",
+			Schedule: Types.Schedule{Period: Types.BiWeekly, Weekday: time.Thursday},
+		},
+	}
+
+	expenses := []Types.Expense{
+		Types.Expense{
+			Amount:   money.New(42.34),
+			Name:     "Utilities",
+			Schedule: Types.Schedule{Period: Types.Monthly, Date: 25},
+		},
+		Types.Expense{
+			Amount:   money.New(400.),
+			Name:     "Rent",
+			Schedule: Types.Schedule{Period: Types.Monthly, Date: 28},
+		},
+	}
+
+	plan, idealSpending := Plan(startDay, endDay, incomes, expenses)
+	accounts, avgSimulatedSpending, err := Simulate(startDay, endDay, plan, false)
+	assert.Equal(t, nil, err)
+
+	assert.Equal(t, money.New(0.), accounts[Types.External])
+	assert.Equal(t, money.New(0.), accounts[Types.Checking])
+	assert.Equal(t, money.New(0.), accounts[Types.Savings])
+
+	assert.InDelta(t, avgSimulatedSpending.Float()/idealSpending.Float(), 1., 0.05)
+}

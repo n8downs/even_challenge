@@ -14,7 +14,7 @@ const simulatedSpendingMemo = "  -Simulated Spending-"
 
 func main() {
 	startDay, _ := time.Parse(Types.DateFormat, "2015.08.01")
-	endDay, _ := time.Parse(Types.DateFormat, "2016.12.31")
+	endDay, _ := time.Parse(Types.DateFormat, "2015.08.20")
 
 	incomes := []Types.Income{
 		Types.Income{
@@ -141,7 +141,17 @@ func Plan(
 				}
 			}
 
-			discretionaryDivided = totalIncome.Add(runningSavings).Subtract(totalExpenses).Divide(int64(endDay.Sub(currentDate).Hours() / 24))
+			discretionaryDivided = totalIncome.Add(runningSavings).Subtract(totalExpenses).Divide(int64(math.Max(float64(endDay.Sub(currentDate).Hours()/24), 1.)))
+			if len(discretionaryDivided) == 0 {
+				fmt.Println(
+					endDay.Format(Types.DateFormat),
+					currentDate.Format(Types.DateFormat),
+					totalIncome,
+					runningSavings,
+					totalExpenses,
+					int64(endDay.Sub(currentDate).Hours()/24),
+				)
+			}
 			currentIdeal := discretionaryDivided[0]
 
 			daysUntilNextIncome := int64(nextIncomeDate.Sub(currentDate).Hours() / 24)
