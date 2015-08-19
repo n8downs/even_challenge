@@ -2,8 +2,9 @@ package Types
 
 import (
 	"fmt"
-	"math"
 	"time"
+
+	"github.com/ndowns/even_challenge/money"
 )
 
 // Period ...
@@ -53,35 +54,28 @@ const (
 // Income ...
 type Income struct {
 	Name     string
-	Amount   float64
+	Amount   money.Money
 	Schedule Schedule
 }
 
 // Expense ...
 type Expense struct {
 	Name     string
-	Amount   float64
+	Amount   money.Money
 	Schedule Schedule
 }
 
 // Transaction ...
 type Transaction struct {
 	Date  time.Time
-	Delta float64
+	Delta money.Money
 	Memo  string
 	From  Account
 	To    Account
 }
 
-// ToString ...
-func (t Transaction) ToString() string {
-	var d string
-	if t.Delta >= 0 {
-		d = fmt.Sprintf(" %.2f ", t.Delta)
-	} else {
-		d = fmt.Sprintf("(%.2f)", math.Abs(t.Delta))
-	}
-	return fmt.Sprintf("%10s | %-40s | %15s", t.Date.Format(DateFormat), t.Memo, d)
+func (t Transaction) String() string {
+	return fmt.Sprintf("%10s | %-40s | %15s", t.Date.Format(DateFormat), t.Memo, t.Delta.String())
 }
 
 // Schedule ...
@@ -112,6 +106,8 @@ func (s Schedule) FindOccurrances(from, to time.Time) (occurrances []time.Time) 
 		}
 	case BiMonthly:
 		{
+			// TODO: handle the case where the 1st or 15th falls on a weekend/holiday
+			// (payment should happen on the Friday before in that case)
 			fromYear, fromMonth, _ := from.Date()
 			occ1 := time.Date(fromYear, fromMonth, 1, 0, 0, 0, 0, time.UTC)
 			occ15 := time.Date(fromYear, fromMonth, 15, 0, 0, 0, 0, time.UTC)

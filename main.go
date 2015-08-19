@@ -1,56 +1,63 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/ndowns/even_challenge/Types"
+	"github.com/ndowns/even_challenge/money"
 )
 
 const simulatedSpendingMemo = "  -Simulated Spending-"
 
 func main() {
-	startDay, _ := time.Parse(Types.DateFormat, "2015.08.01")
-	endDay, _ := time.Parse(Types.DateFormat, "2015.08.31")
+	startDay := UnsafeTimeParse("2015.08.01")
+	endDay := UnsafeTimeParse("2015.08.31")
 
-	incomes := []Types.Income{}
-	incomes = append(incomes,
+	incomes := []Types.Income{
 		Types.Income{
-			Amount:   500.,
+			Amount:   money.New(500.),
 			Name:     "Philz",
 			Schedule: Types.Schedule{Period: Types.BiMonthly},
 		},
 		Types.Income{
-			Amount:   175.,
+			Amount:   money.New(175.),
 			Name:     "Mission Cliffs",
 			Schedule: Types.Schedule{Period: Types.BiWeekly, Weekday: time.Thursday},
-		})
-	fmt.Println("Incomes:  ", incomes)
+		},
+	}
 
-	expenses := []Types.Expense{}
-	expenses = append(expenses,
+	expenses := []Types.Expense{
 		Types.Expense{
-			Amount:   42.34,
+			Amount:   money.New(42.34),
 			Name:     "Utilities",
 			Schedule: Types.Schedule{Period: Types.Monthly, Date: 25},
 		},
 		Types.Expense{
-			Amount:   400.,
+			Amount:   money.New(400.),
 			Name:     "Rent",
 			Schedule: Types.Schedule{Period: Types.Monthly, Date: 28},
 		},
 		Types.Expense{
-			Amount:   40.,
+			Amount:   money.New(40.),
 			Name:     "Crossfit",
 			Schedule: Types.Schedule{Period: Types.Weekly, Weekday: time.Tuesday},
 		},
-	)
-	fmt.Println("Expenses: ", expenses)
+	}
 
 	plan, _ := Plan(startDay, endDay, incomes, expenses)
 
-	_, _ = Simulate(startDay, endDay, plan, true)
+	accounts, _, err := Simulate(startDay, endDay, plan, true)
+	if err != nil {
+		fmt.Println(err, accounts)
+	}
+}
+
+// UnsafeTimeParse ...
+func UnsafeTimeParse(s string) (t time.Time) {
+	t, _ = time.Parse(Types.DateFormat, s)
+	return
 }
 
 // Plan ...
@@ -59,14 +66,14 @@ func Plan(
 	endDay time.Time,
 	incomes []Types.Income,
 	expenses []Types.Expense,
-) (map[time.Time][]Types.Transaction, float64) {
+) (map[time.Time][]Types.Transaction, money.Money) {
 	ledger := map[time.Time][]Types.Transaction{}
-	totalIncome := 0.
-	totalExpenses := 0.
+	totalIncome := money.New(0.)
+	totalExpenses := money.New(0.)
 
-	incomeTotals := map[time.Time]float64{}
-	savingsPlan := map[time.Time]float64{}
-	expenseTotals := map[time.Time]float64{}
+	incomeTotals := map[time.Time]money.Money{}
+	savingsPlan := map[time.Time]money.Money{}
+	expenseTotals := map[time.Time]money.Money{}
 
 	for _, income := range incomes {
 		occurrances := income.Schedule.FindOccurrances(startDay, endDay)
@@ -78,72 +85,65 @@ func Plan(
 				From:  Types.External,
 				To:    Types.Checking,
 			})
-			totalIncome += income.Amount
-			incomeTotals[date] += income.Amount
-			savingsPlan[date] = 0.
+			totalIncome = totalIncome.Add(income.Amount)
+			incomeTotals[date] = incomeTotals[date].Add(income.Amount)
+			savingsPlan[date] = money.New(0.)
 		}
 	}
 
 	for _, expense := range expenses {
 		occurrances := expense.Schedule.FindOccurrances(startDay, endDay)
 		for _, date := range occurrances {
-			totalExpenses += expense.Amount
-			expenseTotals[date] += expense.Amount
+			totalExpenses = totalExpenses.Add(expense.Amount)
+			expenseTotals[date] = expenseTotals[date].Add(expense.Amount)
 		}
 	}
 
-	if totalExpenses > totalIncome {
-		return map[time.Time][]Types.Transaction{}, 0.
+	if totalExpenses.GreaterThan(totalIncome) {
+		return map[time.Time][]Types.Transaction{}, money.New(0.)
 	}
 
-	idealDiscretionary := (totalIncome - totalExpenses) / (endDay.Sub(startDay).Hours() / 24)
-	//fmt.Printf("Total: $%.2f in, $%.2f out, $%.2f ideally per day\n\n", totalIncome, totalExpenses, idealDiscretionary)
+	discretionaryDivided := totalIncome.Subtract(totalExpenses).Divide(int64(endDay.Sub(startDay).Hours() / 24))
+	idealDiscretionary := discretionaryDivided[0]
 
-	discretionaryAmount := 0.
-	discretionaryDays := 0.
 	currentDate := startDay
-	runningPlan := 0.
+	runningPlan := money.New(0.)
 	for {
 		if currentDate.After(endDay) {
 			break
 		}
 
-		if incomeTotals[currentDate] != 0. {
+		if !incomeTotals[currentDate].EqualTo(money.New(0.)) {
 			nextIncomeDate := currentDate
-			upcomingExpenses := 0.
+			upcomingExpenses := money.New(0.)
 			for {
 				if nextIncomeDate.After(endDay) {
 					break
 				}
 
-				upcomingExpenses += expenseTotals[nextIncomeDate]
+				upcomingExpenses = upcomingExpenses.Add(expenseTotals[nextIncomeDate])
 				nextIncomeDate = nextIncomeDate.AddDate(0, 0, 1)
-				if incomeTotals[nextIncomeDate] != 0. {
+				if !incomeTotals[nextIncomeDate].EqualTo(money.New(0.)) {
 					break
 				}
 			}
-			daysUntilNextIncome := nextIncomeDate.Sub(currentDate).Hours() / 24
-			mustTransfer := upcomingExpenses - runningPlan
-			idealTransfer := incomeTotals[currentDate] - idealDiscretionary*daysUntilNextIncome
-			transfer := math.Max(mustTransfer, idealTransfer)
-			runningPlan = runningPlan + transfer - upcomingExpenses
-			savingsPlan[currentDate] = -1 * transfer
-			actualDiscretionary := (incomeTotals[currentDate] - transfer) / daysUntilNextIncome
+			daysUntilNextIncome := int64(nextIncomeDate.Sub(currentDate).Hours() / 24)
+			mustTransfer := upcomingExpenses.Subtract(runningPlan)
+			idealTransfer := incomeTotals[currentDate].Subtract(idealDiscretionary.Multiply(float64(daysUntilNextIncome)))
+			transfer := money.Max(mustTransfer, idealTransfer)
+			runningPlan = runningPlan.Add(transfer).Subtract(upcomingExpenses)
 
-			discretionaryAmount += incomeTotals[currentDate] - transfer
-			discretionaryDays += daysUntilNextIncome
+			savingsPlan[currentDate] = transfer.Multiply(-1.)
+			actualDiscretionaries := incomeTotals[currentDate].Subtract(transfer).Divide(daysUntilNextIncome)
 
 			simulatedSpendingDate := currentDate
-			for {
-				if simulatedSpendingDate.Equal(nextIncomeDate) {
-					break
-				}
+			for _, discretionaryAmount := range actualDiscretionaries {
 				ledger[simulatedSpendingDate] = append(ledger[simulatedSpendingDate], Types.Transaction{
 					From:  Types.Checking,
 					To:    Types.External,
 					Memo:  simulatedSpendingMemo,
 					Date:  simulatedSpendingDate,
-					Delta: -1 * actualDiscretionary,
+					Delta: discretionaryAmount,
 				})
 				simulatedSpendingDate = simulatedSpendingDate.AddDate(0, 0, 1)
 			}
@@ -151,11 +151,8 @@ func Plan(
 		currentDate = currentDate.AddDate(0, 0, 1)
 	}
 
-	//fmt.Println(idealDiscretionary)
-	//fmt.Printf("Planned average discretionary spending levels: $%.2f (%.2f%%)\n\n", discretionaryAmount/discretionaryDays, discretionaryAmount/discretionaryDays/idealDiscretionary)
-
 	for date, amount := range savingsPlan {
-		if amount < 0 {
+		if money.New(0.).GreaterThan(amount) {
 			ledger[date] = append(ledger[date], Types.Transaction{
 				Date:  date,
 				Delta: amount,
@@ -186,7 +183,7 @@ func Plan(
 			},
 				Types.Transaction{
 					Date:  date,
-					Delta: -1 * expense.Amount,
+					Delta: expense.Amount.Multiply(-1.),
 					Memo:  fmt.Sprintf("Expense: %s", expense.Name),
 					From:  Types.Checking,
 					To:    Types.External,
@@ -198,10 +195,15 @@ func Plan(
 }
 
 // Simulate ...
-func Simulate(startDay time.Time, endDay time.Time, ledger map[time.Time][]Types.Transaction, shouldPrintOutput bool) (accounts map[Types.Account]float64, averageSpending float64) {
-	simulatedSpending := 0.
-	numDays := 0.
-	accounts = map[Types.Account]float64{Types.External: 0., Types.Checking: 0., Types.Savings: 0.}
+func Simulate(
+	startDay time.Time,
+	endDay time.Time,
+	ledger map[time.Time][]Types.Transaction,
+	shouldPrintOutput bool,
+) (accounts map[Types.Account]money.Money, averageSpending money.Money, err error) {
+	simulatedSpending := money.New(0.)
+	numDays := int64(0)
+	accounts = map[Types.Account]money.Money{Types.External: money.New(0.), Types.Checking: money.New(0.), Types.Savings: money.New(0.)}
 
 	currentDate := startDay
 	for {
@@ -212,19 +214,26 @@ func Simulate(startDay time.Time, endDay time.Time, ledger map[time.Time][]Types
 		transactions := ledger[currentDate]
 		for _, transaction := range transactions {
 			if transaction.Memo == simulatedSpendingMemo {
-				simulatedSpending += math.Abs(transaction.Delta)
+				simulatedSpending = simulatedSpending.Add(transaction.Delta)
 			}
-			accounts[transaction.From] -= math.Abs(transaction.Delta)
-			accounts[transaction.To] += math.Abs(transaction.Delta)
+			accounts[transaction.From] = accounts[transaction.From].Subtract(transaction.Delta.Abs())
+			accounts[transaction.To] = accounts[transaction.To].Add(transaction.Delta.Abs())
+
 			if shouldPrintOutput {
-				fmt.Printf("%s | %7.2f | %7.2f\n", transaction.ToString(), accounts[Types.Checking], accounts[Types.Savings])
+				fmt.Printf("%s | %9s | %9s\n", transaction.String(), accounts[Types.Checking].String(), accounts[Types.Savings].String())
+			}
+
+			if money.New(0.).GreaterThan(accounts[Types.Checking]) || money.New(0.).GreaterThan(accounts[Types.Savings]) {
+				return accounts, money.New(0.), errors.New("Balance dipped below zero!")
 			}
 		}
 		numDays += 1.
 		currentDate = currentDate.AddDate(0, 0, 1)
 	}
 
-	return accounts, simulatedSpending / numDays
+	divided := simulatedSpending.Divide(numDays)
+
+	return accounts, divided[0], nil
 }
 
 /*
