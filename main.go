@@ -18,13 +18,17 @@ func main() {
 
 	incomes := []Types.Income{
 		Types.Income{
-			Amount:   money.New(150.),
+			Amount:   money.New(500.),
 			Name:     "Philz",
-			Schedule: Types.Schedule{Period: Types.Weekly, Weekday: time.Friday},
+			Schedule: Types.Schedule{Period: Types.BiMonthly},
+		},
+		Types.Income{
+			Amount:   money.New(175.),
+			Name:     "Mission Cliffs",
+			Schedule: Types.Schedule{Period: Types.BiWeekly, Weekday: time.Thursday},
 		},
 	}
 
-	oneOff, _ := time.Parse(Types.DateFormat, "2015.08.28")
 	expenses := []Types.Expense{
 		Types.Expense{
 			Amount:   money.New(42.34),
@@ -34,7 +38,12 @@ func main() {
 		Types.Expense{
 			Amount:   money.New(400.),
 			Name:     "Rent",
-			Schedule: Types.Schedule{Period: Types.OneTime, Time: oneOff},
+			Schedule: Types.Schedule{Period: Types.Monthly, Date: 28},
+		},
+		Types.Expense{
+			Amount:   money.New(40.),
+			Name:     "Crossfit",
+			Schedule: Types.Schedule{Period: Types.Weekly, Weekday: time.Tuesday},
 		},
 	}
 
@@ -44,12 +53,17 @@ func main() {
 		fmt.Println("Insolvent :(")
 	}
 
+	fmt.Println()
+
 	accounts, actual, err := Simulate(startDay, endDay, plan, true)
 	if err != nil {
 		fmt.Println(err, accounts)
 	}
 
-	fmt.Printf("actual spending: %.2f%% of ideal discretionary spending\n", math.Abs(actual.Float()/ideal.Float()*100.))
+	fmt.Println()
+	fmt.Println("Ideal Average Spending", ideal.String(), "Actual Average Spending", actual.String())
+	fmt.Printf("Actual: %.2f%% of ideal\n", math.Abs(actual.Float()/ideal.Float()*100.))
+	fmt.Println()
 }
 
 // Plan ...
@@ -217,6 +231,12 @@ func Simulate(
 		Types.External: money.New(0.),
 		Types.Checking: money.New(0.),
 		Types.Savings:  money.New(0.),
+	}
+
+	if shouldPrintOutput {
+		fmt.Printf("%-10s | %-40s | %-15s | %9s | %9s\n", "Date", "Transaction", "Amount(from Ck)", "Checking", "Savings")
+		fmt.Println("-----------------------------------------------------------------------------------------------")
+		fmt.Printf("%10s | %-40s | %-15s | %9s | %9s\n", startDay.Format(Types.DateFormat), "<Initial balances>", "", accounts[Types.Checking], accounts[Types.Savings])
 	}
 
 	currentDate := startDay
