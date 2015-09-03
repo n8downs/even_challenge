@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ndowns/even_challenge/Types"
-	"github.com/ndowns/even_challenge/money"
+	"github.com/n8downs/even_challenge/Types"
+	"github.com/n8downs/even_challenge/money"
 	"github.com/stretchr/testify/assert"
 )
 
