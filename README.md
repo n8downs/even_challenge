@@ -1,0 +1,10 @@
+# even_challenge
+
+This is a little bit of code I wrote for an interview challenge and to learn the Go language. While this output didn't land the job, I believe that's a good thing, because it exposed a couple of mismatches between me and the interviewer. Here's what the interviewer found to be lacking:
+
+- **Factoring:** The interviewer (correctly) called out the fact that the majority of the interesting work happens within a monolith of a function. I agree, and I'm certainly a bit uncomfortable with the state of the main planning function. However, *especially in a startup*, I believe that if you're perfectly comfortable with all the code you write, you're not moving fast enough. Ultimately, my comfort with this code comes from the fact that its behavior is well tested. Also, I was thinking of this code more as a starting place than a final draft.
+- **Comments:** The interviewer also called out the lack of comments. Personally, I avoid comments whenever possible; I much prefer writing code so that it can be read easily. I've seen too many comments grow incorrect as the code they originally described changes, which lays a neat trap for other programmers.
+- **README:** When I turned it in, this project didn't have a README. I'm the type of engineer who's going to skimp on prose documentation because I spent more time writing tests that protect the workings of the module. Again, I think this is the right behavior for a tiny team. 
+- **Broken out of the box:** This was a totally legit complaint. I should have wiped the directory locally to test that the interviewer would get a green bar when running from scratch (my final commit addresses this). I'm used to having an issue like this taken care of by Buildbot, which made this a good learning opportunity!
+
+Overall, I was pretty happy with what I learned about Go (besides a few WTF moments). I was particularly pleased with the type system when I realized I needed to create a Money type to correctly do math with currency values (instead of floats). Also, the problem was a fun one!
